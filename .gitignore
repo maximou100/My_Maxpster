@@ -1,0 +1,46 @@
+# Xcode build artifacts
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Packages/
+Package.pins
+Package.resolved
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Dependency managers
+Pods/
+Carthage/Build/
+
+# Editor / IDE
+.idea/
+*.swp
+*~
+
+# Logs
+*.log
+
+# Secrets (none currently — but anything looking like a key file goes here)
+.env
+.env.local
+*.p8
+*.p12
+*.mobileprovision
+
+# Local notes
+TODO.local.md
+.claude/

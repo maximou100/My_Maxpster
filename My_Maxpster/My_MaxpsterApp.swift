@@ -2,8 +2,6 @@
 //  My_MaxpsterApp.swift
 //  My_Maxpster
 //
-//  Created by Maxime LECLERCQ on 5/12/26.
-//
 
 import SwiftUI
 import SwiftData
@@ -12,9 +10,18 @@ import SwiftData
 struct My_MaxpsterApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Place.self,
+            Tag.self,
+            PlaceCollection.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // CloudKit sync. SwiftData picks the iCloud container declared in the
+        // app's CloudKit entitlement; works on-device + simulator with an
+        // iCloud-signed-in account.
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .automatic
+        )
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])

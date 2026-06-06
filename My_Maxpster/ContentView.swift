@@ -2,60 +2,65 @@
 //  ContentView.swift
 //  My_Maxpster
 //
-//  Created by Maxime LECLERCQ on 5/12/26.
-//
 
 import SwiftUI
 import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @State private var filterState = FilterState()
+    @State private var seedProgress = SeedProgress()
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
+        ZStack {
+            TabView {
+                MapTab()
+                    .tabItem { Label("Map", systemImage: "map") }
+
+                PlacesTab()
+                    .tabItem { Label("Places", systemImage: "list.bullet") }
+
+                CollectionsTab()
+                    .tabItem { Label("Collections", systemImage: "folder") }
+
+                DashboardTab()
+                    .tabItem { Label("Dashboard", systemImage: "chart.bar.fill") }
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
+            .tint(.appAccent)
+            .environment(filterState)
+
+            if seedProgress.isSeeding {
+                seedOverlay
+                    .transition(.opacity)
             }
-        } detail: {
-            Text("Select an item")
+        }
+        .animation(.easeInOut(duration: 0.2), value: seedProgress.isSeeding)
+        .task {
+            await SeedService.seedIfNeeded(modelContext: modelContext, progress: seedProgress)
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+    private var seedOverlay: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .controlSize(.large)
+            Text(seedProgress.message.isEmpty ? "Setting up your library…" : seedProgress.message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text("This only happens once. iCloud sync continues in the background.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
         }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
+        .padding(28)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.25).ignoresSafeArea())
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: [Place.self, Tag.self, PlaceCollection.self], inMemory: true)
 }
