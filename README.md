@@ -77,3 +77,17 @@ The *Enrich from Yelp* button on a place detail uses Yelp Fusion. To enable:
 ## License
 
 Personal project. Not currently licensed for redistribution.
+
+
+##Screenshots:
+
+<img width="2064" height="2752" alt="Simulator Screenshot - iPad Pro 13-inch (M5) - 2026-06-07 at 09 55 05" src="https://github.com/user-attachments/assets/20d386aa-f232-4646-aa9f-e6301d4e6955" />
+<img width="2064" height="2752" alt="Simulator Screenshot - iPad Pro 13-inch (M5) - 2026-06-07 at 09 55 12" src="https://github.com/user-attachments/assets/e9ae6be6-d941-4465-a605-2a83f5530736" />
+<img width="2064" height="2752" alt="Simulator Screenshot - iPad Pro 13-inch (M5) - 2026-06-07 at 09 55 20" src="https://github.com/user-attachments/assets/79cc6042-6a9a-4e9b-b847-e980a8e18e9c" />
+<img width="2064" height="2752" alt="Simulator Screenshot - iPad Pro 13-inch (M5) - 2026-06-07 at 09 55 27" src="https://github.com/user-attachments/assets/93e9f9b3-7a2a-4594-80fc-e5d2d6d56f23" />
+<img width="1284" height="2778" alt="Simulator Screenshot - iPhone 14 Plus - 2026-06-07 at 10 11 25" src="https://github.com/user-attachments/assets/e74b40c3-7349-4862-b9c1-6838dc5cddc4" />
+<img width="1284" height="2778" alt="Simulator Screenshot - iPhone 14 Plus - 2026-06-07 at 10 11 22" src="https://github.com/user-attachments/assets/50bd4cab-f2fa-4561-8cf8-f9343d2baeda" />
+<img width="1284" height="2778" alt="Simulator Screenshot - iPhone 14 Plus - 2026-06-07 at 10 11 19" src="https://github.com/user-attachments/assets/f4cfcbbc-9d0e-4cca-8db8-ee845f1b5fe9" />
+<img width="1284" height="2778" alt="Simulator Screenshot - iPhone 14 Plus - 2026-06-07 at 10 11 15" src="https://github.com/user-attachments/assets/e0fdc8f8-59d9-48fe-9e79-a59d089df359" />
+<img width="1284" height="2778" alt="Simulator Screenshot - iPhone 14 Plus - 2026-06-07 at 10 11 11" src="https://github.com/user-attachments/assets/fcc42346-15a8-4ae0-aae3-213ef2fe509f" />
+<img width="2064" height="2752" alt="Simulator Screenshot - iPad Pro 13-inch (M5) - 2026-06-07 at 09 55 54" src="https://github.com/user-attachments/assets/a82c0887-3bc0-4523-8473-104b00f010e5" />
