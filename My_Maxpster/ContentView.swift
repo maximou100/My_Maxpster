@@ -26,6 +26,8 @@ struct ContentView: View {
                 DashboardTab()
                     .tabItem { Label("Dashboard", systemImage: "chart.bar.fill") }
             }
+            // Bottom bar on iPhone; sidebar on iPad and Mac. Single line, no per-idiom branching.
+            .tabViewStyle(.sidebarAdaptable)
             .tint(.appAccent)
             .environment(filterState)
 
@@ -41,18 +43,39 @@ struct ContentView: View {
     }
 
     private var seedOverlay: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .controlSize(.large)
-            Text(seedProgress.message.isEmpty ? "Setting up your library…" : seedProgress.message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text("This only happens once. iCloud sync continues in the background.")
+        VStack(spacing: 18) {
+            Image(systemName: "icloud.and.arrow.down.fill")
+                .font(.system(size: 36))
+                .foregroundStyle(Color.appAccent)
+
+            VStack(spacing: 6) {
+                Text("Setting up your library")
+                    .font(.headline)
+                Text(seedProgress.message.isEmpty
+                     ? "This only happens once."
+                     : seedProgress.message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            // Determinate progress when we know the total; indeterminate during parse/sync stages.
+            if seedProgress.total > 0 {
+                ProgressView(value: seedProgress.fraction)
+                    .tint(.appAccent)
+                    .frame(width: 220)
+            } else {
+                ProgressView()
+                    .tint(.appAccent)
+            }
+
+            Text("iCloud sync continues in the background after this.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
         }
         .padding(28)
+        .frame(width: 300)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -82,6 +82,81 @@ final class ImportService {
         try insert(parsed: Self.parseGeoJSON(text), strategy: strategy)
     }
 
+    /// Async variant of `insertBatched` that yields to the runloop between batches
+    /// and invokes `onBatchSaved` with the cumulative processed count so the UI
+    /// can show a determinate progress bar.
+    ///
+    /// Yielding is essential during the first-launch seed: without it, even with
+    /// batched saves, SwiftUI's repaint thread is starved and the user sees a
+    /// frozen overlay until the entire import finishes.
+    @discardableResult
+    func insertBatchedAsync(
+        parsed: [ParsedPlace],
+        strategy: MergeStrategy,
+        batchSize: Int = 25,
+        onBatchSaved: ((Int) -> Void)? = nil
+    ) async throws -> ImportSummary {
+        var summary = ImportSummary()
+        summary.totalParsed = parsed.count
+
+        let existing = try modelContext.fetch(FetchDescriptor<Place>())
+        var existingTags = try modelContext.fetch(FetchDescriptor<Tag>())
+        var sinceLastSave = 0
+        var processed = 0
+
+        for p in parsed {
+            applyOne(p, strategy: strategy, existing: existing, existingTags: &existingTags, summary: &summary)
+            processed += 1
+            sinceLastSave += 1
+            if sinceLastSave >= batchSize {
+                try? modelContext.save()
+                sinceLastSave = 0
+                onBatchSaved?(processed)
+                // Yield so SwiftUI can re-render the progress overlay between batches.
+                await Task.yield()
+            }
+        }
+        try? modelContext.save()
+        onBatchSaved?(processed)
+        return summary
+    }
+
+    /// Pure helper extracted so both sync and async paths share the same insert logic.
+    private func applyOne(
+        _ p: ParsedPlace,
+        strategy: MergeStrategy,
+        existing: [Place],
+        existingTags: inout [Tag],
+        summary: inout ImportSummary
+    ) {
+        let duplicate = findDuplicate(for: p, in: existing)
+        switch strategy {
+        case .skipDuplicates:
+            if duplicate != nil { summary.skipped += 1; return }
+            let place = newPlace(from: p)
+            attachTags(p.tags, to: place, existingTags: &existingTags, summary: &summary)
+            modelContext.insert(place)
+            summary.inserted += 1
+        case .replace:
+            if let dup = duplicate {
+                apply(p, to: dup)
+                dup.tags = []
+                attachTags(p.tags, to: dup, existingTags: &existingTags, summary: &summary)
+                summary.replaced += 1
+            } else {
+                let place = newPlace(from: p)
+                attachTags(p.tags, to: place, existingTags: &existingTags, summary: &summary)
+                modelContext.insert(place)
+                summary.inserted += 1
+            }
+        case .appendAll:
+            let place = newPlace(from: p)
+            attachTags(p.tags, to: place, existingTags: &existingTags, summary: &summary)
+            modelContext.insert(place)
+            summary.inserted += 1
+        }
+    }
+
     /// Like `insert(parsed:strategy:)` but commits every 50 records so CloudKit
     /// sees reasonable transaction sizes during a bulk seed import.
     @discardableResult

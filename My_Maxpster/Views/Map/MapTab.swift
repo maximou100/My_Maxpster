@@ -43,11 +43,12 @@ struct MapTab: View {
     @State private var previewItem: MapItemWrapper?
     @State private var isResolvingCompletion = false
     @State private var searchFocused: Bool = false
+    @State private var showingSettings = false
     @FocusState private var searchFieldFocused: Bool
 
-    private var filteredPlaces: [Place] {
-        filter.apply(to: places)
-    }
+    /// Cached result of `filter.apply(to: places)`. Recomputed via `.task(id:)` only when
+    /// the place set or filter changes — avoids re-walking 200 items on every render.
+    @State private var filteredPlaces: [Place] = []
 
     /// Local matches against the current search query (independent of other filters,
     /// so the user can find a place even if it's been filtered out of the map).
@@ -76,38 +77,7 @@ struct MapTab: View {
 
         NavigationStack {
             ZStack(alignment: .top) {
-                MapReader { proxy in
-                    Map(position: $position, selection: $selectedPlaceID) {
-                        ForEach(filteredPlaces) { place in
-                            Annotation(place.name, coordinate: place.coordinate) {
-                                PlacePin(category: place.category,
-                                         isSelected: selectedPlaceID == place.id)
-                            }
-                            .tag(place.id)
-                        }
-                        UserAnnotation()
-                    }
-                    .mapStyle(styleChoice.mapStyle)
-                    .mapControls {
-                        MapUserLocationButton()
-                        MapCompass()
-                        MapScaleView()
-                    }
-                    .onTapGesture(count: 1) {
-                        // No-op tap; selection is handled via Annotation tags.
-                    }
-                    .gesture(
-                        LongPressGesture(minimumDuration: 0.5)
-                            .sequenced(before: DragGesture(minimumDistance: 0))
-                            .onEnded { value in
-                                if case .second(true, let drag?) = value {
-                                    if let coord = proxy.convert(drag.location, from: .local) {
-                                        Task { await beginAddPlace(at: coord) }
-                                    }
-                                }
-                            }
-                    )
-                }
+                mapContainer
 
                 searchOverlay
             }
@@ -136,6 +106,9 @@ struct MapTab: View {
             .sheet(isPresented: $showingAddSheet) {
                 PlaceForm(mode: .create(prefill: pendingPrefill))
             }
+            .sheet(isPresented: $showingSettings) {
+                SettingsSheet()
+            }
             .sheet(item: $previewItem) { wrapper in
                 OnlinePlacePreview(mapItem: wrapper.item) { prefill in
                     pendingPrefill = prefill
@@ -161,8 +134,65 @@ struct MapTab: View {
                     didInitialFit = true
                     fitToPlaces(places)
                 }
+                refreshFilteredPlaces()
             }
+            .onChange(of: places.count) { _, _ in refreshFilteredPlaces() }
+            .onChange(of: filter.activeFilterCount) { _, _ in refreshFilteredPlaces() }
+            .onChange(of: filter.searchQuery) { _, _ in refreshFilteredPlaces() }
         }
+    }
+
+    /// Map view extracted so the parent body's type-checker budget doesn't explode.
+    private var mapContainer: some View {
+        MapReader { proxy in
+            Map(position: $position, selection: $selectedPlaceID) {
+                mapBody
+            }
+            .mapStyle(styleChoice.mapStyle)
+            .mapControls {
+                // MapUserLocationButton is intentionally removed — our own
+                // amber location button in the search overlay covers this and
+                // avoids visual overlap with the map-style picker.
+                MapCompass()
+                MapScaleView()
+            }
+            .gesture(longPressAddGesture(proxy: proxy))
+        }
+    }
+
+    /// Pulled out of the parent ViewBuilder to keep the Swift type-checker fast —
+    /// nesting Map + ForEach + Annotation + modifiers + gestures + sheets all in one
+    /// closure tips it over its expression-budget heuristic.
+    @MapContentBuilder
+    private var mapBody: some MapContent {
+        ForEach(filteredPlaces) { place in
+            Annotation(place.name, coordinate: place.coordinate) {
+                PlacePin(category: place.category,
+                         isSelected: selectedPlaceID == place.id)
+            }
+            .tag(place.id)
+        }
+        .annotationTitles(.hidden)
+        UserAnnotation()
+    }
+
+    /// Long-press anywhere on the map to drop an Add-Place pin.
+    /// Extracted for the same compiler-budget reasons as `mapBody`.
+    private func longPressAddGesture(proxy: MapProxy) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.5)
+            .sequenced(before: DragGesture(minimumDistance: 0))
+            .onEnded { value in
+                guard case .second(true, let drag?) = value else { return }
+                guard let coord = proxy.convert(drag.location, from: .local) else { return }
+                Task { await beginAddPlace(at: coord) }
+            }
+    }
+
+    /// Recomputes the cached filtered list off the synchronous render path.
+    /// Cheap (one pass over ~200 items, sub-millisecond) but keeping it out of
+    /// the view-body computation avoids redoing it on every re-render.
+    private func refreshFilteredPlaces() {
+        filteredPlaces = filter.apply(to: places)
     }
 
     private var searchOverlay: some View {
@@ -241,6 +271,17 @@ struct MapTab: View {
                         }
                     } label: {
                         Image(systemName: "map.fill")
+                            .font(.title2)
+                            .foregroundStyle(Color.appAccent)
+                            .padding(8)
+                            .background(.regularMaterial)
+                            .clipShape(Circle())
+                    }
+
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
                             .font(.title2)
                             .foregroundStyle(Color.appAccent)
                             .padding(8)

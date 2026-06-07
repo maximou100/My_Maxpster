@@ -2,6 +2,11 @@
 //  PlacePin.swift
 //  My_Maxpster
 //
+//  Drawn 200+ times simultaneously on the map — keep it cheap.
+//  No shadow (CPU blur is the most expensive modifier here),
+//  no spring animation (would compile a separate transaction per pin),
+//  and use a Rectangle-replacement stroke trick instead of overlay where possible.
+//
 
 import SwiftUI
 
@@ -10,14 +15,10 @@ struct PlacePin: View {
     let isSelected: Bool
 
     var body: some View {
+        let size: CGFloat = isSelected ? 22 : 12
         Circle()
-            .fill(category.color)
-            .frame(width: isSelected ? 22 : 14, height: isSelected ? 22 : 14)
-            .overlay(
-                Circle()
-                    .stroke(Color(uiColor: .systemBackground).opacity(0.9), lineWidth: 2)
-            )
-            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-            .animation(.spring(duration: 0.2), value: isSelected)
+            .strokeBorder(.background.opacity(0.9), lineWidth: 1.5)
+            .background(Circle().fill(category.color))
+            .frame(width: size, height: size)
     }
 }
